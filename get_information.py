@@ -2,34 +2,41 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import json
 
-# Chrome im Headless-Modus starten
-options = webdriver.ChromeOptions()
-options.add_argument("--headless=new")
-driver = webdriver.Chrome(options=options)
+# ----------------------------
+# Funktion: Produktinfos abrufen
+# ----------------------------
+def safe_get_element(driver, selector, wait_time=5):
+    try:
+        wait = WebDriverWait(driver, wait_time)
+        element = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, selector)))
+        return element.get_attribute("innerText")
+    except:
+        return "Nicht verfügbar"
 
-url = "https://toom.de/p/akku-winkelschleifer-gws-12v-76-professional-12-v-ohne-akku/1501041"
-driver.get(url)
+def get_product_info(url):
+    options = webdriver.ChromeOptions()
+    options.add_argument("--headless=new")
+    driver = webdriver.Chrome(options=options)
+    driver.get(url)
 
-wait = WebDriverWait(driver, 15)
+    product_info = {
+        "Produktname": safe_get_element(driver, '[data-testid="header-headline"]'),
+        "Preis": safe_get_element(driver, '[data-testid="buybox-price"]'),
+        "AngebotsPreis": safe_get_element(driver, '[data-testid="price-box-pricing-previous"]'),
+        "Beschreibung": safe_get_element(driver, '[data-testid="description-accordion"]'),
+        "Gefahrenhinweis": safe_get_element(driver, '[data-testid="safety-advice-accordion"]'),
+        "Eigenschaften": safe_get_element(driver, '[data-testid="produktdetails-characteristic-attribute-value"]')
+    }
 
-# Preis
-price_element = wait.until(
-    EC.presence_of_element_located((By.CSS_SELECTOR, '[data-testid="buybox-price"]'))
-)
+    driver.quit()
 
-# Produktname
-productname_element = wait.until(
-    EC.presence_of_element_located((By.CSS_SELECTOR, '[data-testid="header-headline"]'))
-)
+    # Dictionary → JSON-String
+    product_info_json = json.dumps(product_info, ensure_ascii=False, indent=2)
 
-# Beschreibung
-description_element = wait.until(
-    EC.presence_of_element_located((By.CSS_SELECTOR, '[data-testid="description-accordion"]'))
-)
+    print(product_info_json)
+    return product_info_json
 
-print("Produktname:", productname_element.get_attribute("innerText"))
-print("Preis:", price_element.get_attribute("innerText"))
-print("Beschreibung:", description_element.get_attribute("innerText"))
 
-driver.quit()
+print(get_product_info(url="https://toom.de/p/pinienrinde-7-15-mm-60-l/4530045"))
